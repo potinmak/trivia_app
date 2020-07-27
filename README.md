@@ -14,8 +14,8 @@ That's where you come in! Help them finish the trivia app so they can start hold
 
 Completing this trivia app will give you the ability to structure plan, implement, and test an API - skills essential for enabling your future applications to communicate with others. 
 
-## Tasks
-
+### Tasks
+## Setting up FrontEnd Server
 There are `TODO` comments throughout project. Start by reading the READMEs in:
 
 1. [`./frontend/`](./frontend/README.md)
