@@ -34,30 +34,30 @@ def create_app(test_config=None):
 
 
   #Create an endpoint to handle GET requests for all available categories.
-  @app.route('/categories')
+  @app.route('/categories', methods=['GET'])
   def retrieve_categories():
     #get all the categories and order them by their ids
     categories = Category.query.order_by(Category.id).all()
     old_categories = Category.query.all()
-    current_categories= {}
+    current_categories_dict = {}
     #format them in a for-loop
     for c in categories:
-      current_categories[c.id] =c.type
+      current_categories_dict[c.id] =c.type
 
-    old_categories ={}
-    
-    for p in old_categories:
-        old_categories.append(p)
+    total_questions = Question.query.all()
+    questions_display = paginate_questions(request, total_questions)
     
     #if there is no categories found then abort
-    if len(current_categories) == 0:
+    if len(current_categories_dict) == 0:
       abort (404)
   
     #return the json results
     return jsonify({
-      'success': True,
-      'categories': current_categories,
-      #'total_categories': len(current_categories)
+      #'success': True,
+      "questions": questions_display,
+      "total_questions": len(total_questions),
+      "current_category": current_categories_dict,
+      "categories": categories
     })
 
   #Create an endpoint to handle GET requests for questions, including pagination (every 10 questions). 
@@ -96,46 +96,24 @@ def create_app(test_config=None):
 
     #return the json results
     return jsonify({
-      'success': True,
-      'questions': questions_list,
-      'current_category':"",
-      'total_questions': total_questions,
-      'categories':  _categories_,
-      
+      "success": True,
+      "questions": questions_list,
+      "total_questions": total_questions,
+      "categories": [category.format() for category in current_categories],
+      "current_category":None,  
     })
 
 #Create error handlers for all expected errors including 404, 422 and 500. 
-  @app.errorhandler(500)
-  def server_error(error):
-    return jsonify({
-      "success": False,
-      "error": 500,
-      "message": "Internal Server Error"
-    }), 500
 
-  @app.errorhandler(422)
-  def unprocessable_entity(error):
-    return jsonify({
-      "success":False,
-      "error":422,
-      "message":"Unprocessable"
-    }),422
+  #@app.errorhandler(500)
+  #def server_error(error):
+  #  return jsonify({
+  #    "success": False,
+  #    "error": 500,
+  #    "message": "Internal Server Error"
+  #  }), 500
+
   
-  @app.errorhandler(404)
-  def not_found(error):
-    return jsonify({
-      "success":False,
-      "error":404,
-      "message":"Resource Not Found"
-
-    }), 404
-  @app.errorhandler(400)
-  def bad_request(error):
-    return jsonify({
-      "success":False,
-      "error":400,
-      "message":"Bad Request"
-    }), 400
 
 
     
@@ -167,9 +145,11 @@ def create_app(test_config=None):
       #return json result
       return jsonify({
         "succes":True,
-        "deleted": question_id,
+        #"deleted": question_id,
         #"questions": current_questions,
-        "total_questions": len(question_selection)
+        #"total_questions": len(question_selection),
+        
+        
         
       })
     except:
@@ -263,12 +243,14 @@ def create_app(test_config=None):
       return jsonify({
         "success": True,
         "questions": current_questions,
-        #"total_questions": len(),
+        "total_questions": len(current_questions),
+        "current_category": "",
+         
         #'categories_list': list(categories_list)
       })
 
     except:
-      abort(404)
+      abort(400)
 
 
   #Create a GET endpoint to get questions based on category. 
@@ -300,11 +282,11 @@ def create_app(test_config=None):
 
       #paginate the result
     return jsonify({
-      'success':True,
-      'category': Category.query.get(id).format(),
-      'current_category': id,
-      'question': questions_pool,
-      'total_questions':len(Question.query.all())
+      #'success':True,
+      #'category': Category.query.get(id).format(),
+      'questions': questions_pool,
+      'total_questions':len(questions_pool),
+      'current_category': id
     })
       
  
@@ -318,66 +300,63 @@ def create_app(test_config=None):
   def quizzes():
     
     #get the json data
-    try:
-      data = request.get_json() #data is like [^&(^*###@$^%&......)]
+    
+    data = request.get_json() #data is like [^&(^*###@$^%&......)]
     #get data from previous questions
-      previous_questions = data.get('previous_questions')
+    previous_questions = data.get('previous_questions')
     #get the category
-      quiz_catgeory = data.get('quiz_category')
+    quiz_catgeory = data.get('quiz_category')
 
     #abort if category or previous questions is none
-      if ((quiz_category is None) or (previous_questions is None)):
-        abort(400)
+    if ((quiz_category is None) or (previous_questions is None)):
+      abort(400)
 
+    previous_question=[]
 
-    #when the user clicks to play the quiz
-      if ((quiz_category['type']=="c") or (quiz_category['id']==0)):
-        questions = Question.query.filter_by(Question.id).all()
-      else:
-        questions = Question.query.filter_by(category=quiz_catgeory['id']).all()
+    def check_used_q(qqqqqq):
+      used = False
+      for s in previous_questions:
+        if (s == qqqqqq.id):
+          used =True
+      return used
 
     #format questions together
-      questions_in_order = [question.format() for question in questions]
+      qqq = Question.id.notin_(previous_questions)
+      selected_question = Question.query.filter(Question.category == body['quiz_category']['id'], qqq)
 
       total_questions = len(questions)
 
-    
-      questions_pool= []
-    
-    #if the question does not exist in previous questions then it could be put into the random questions generation pool.
-      for question in questions:
-        if (question['id'] not in  previous_questions):
-          questions_pool.append(question)
-    
-    #helper function of generation question 
-      def rand_questions(question):
-        rand = random.randrange(0, len(question), 1)
-        return questions[rand]
-
-    #only works if the questions pool has more than one question for randomization.
-      finally_selected_qs = []
-      if (len(questions_pool)>0):
-        finally_selected_qs= random.choice(questions_pool)
-    
-    #if there is not question in question pool then a random question would be generated and it could be used before.
-      else:
-        rand_questions(question)
-
-    #check question if it's used or not
-      def check_used_questions(question):
-        question = rand_questions()
-    except:
-      abort(400)
-
-    
-    
   
     return jsonify({
       "success":True,
-      "question":finally_selected_qs.format(),
-      "total_question":total_questions,
-      "previous_questions": previous_questions
+      "question":selected_question.format(),
+      #"total_question":total_questions,
+      #"previous_questions": previous_questions
     })
+  
+  @app.errorhandler(422)
+  def unprocessable_entity(error):
+    return jsonify({
+      "success":False,
+      "error":422,
+      "message":"Unprocessable"
+    }),422
+  
+  @app.errorhandler(404)
+  def not_found(error):
+    return jsonify({
+      "success":False,
+      "error":404,
+      "message":"Resource Not Found"
+
+    }), 404
+  @app.errorhandler(400)
+  def bad_request(error):
+    return jsonify({
+      "success":False,
+      "error":400,
+      "message":"Bad Request"
+    }), 400
     
 
     
