@@ -324,7 +324,7 @@ def create_app(test_config=None):
       qqq = Question.id.notin_(previous_questions)
       selected_question = Question.query.filter(Question.category == body['quiz_category']['id'], qqq)
 
-      total_questions = len(questions)
+      total_questions = len(Question.query.all())
 
   
     return jsonify({
