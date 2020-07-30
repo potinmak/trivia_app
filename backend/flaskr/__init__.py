@@ -145,7 +145,7 @@ def create_app(test_config=None):
       #return json result
       return jsonify({
         "succes":True,
-        #"deleted": question_id,
+        "deleted": question_id,
         #"questions": current_questions,
         #"total_questions": len(question_selection),
         
@@ -228,31 +228,21 @@ def create_app(test_config=None):
       current_categories = Category.query.order_by(Category.id).all()
       #put questions in tuples
       questions_list = [(q.id.format(), q.type.format()) for q in search_questions]
-
       num = Question.query.all()
-
       #if there is not questions, return "resouces is not found" and abort it
       if len(questions_list)==0:
         abort(404)
 
-      #same
-      if current_categories is None:
-        abort(404)
-      
       #return the results
       return jsonify({
         "success": True,
         "questions": current_questions,
         "total_questions": len(current_questions),
         "current_category": "",
-         
-        #'categories_list': list(categories_list)
+        
       })
-
     except:
       abort(400)
-
-
   #Create a GET endpoint to get questions based on category. 
 
   #TEST: In the "List" tab / main screen, clicking on one of the 
@@ -273,13 +263,6 @@ def create_app(test_config=None):
       #if the category id is none then abort 400
     if category_ =='':
       abort(400)
-
-      #if the questions id does not exist by search id
-    if len(questions_selected)==0 :
-      abort(404)
-
-      
-
       #paginate the result
     return jsonify({
       #'success':True,
@@ -357,9 +340,5 @@ def create_app(test_config=None):
       "error":400,
       "message":"Bad Request"
     }), 400
-    
-
-    
   
- 
   return app
