@@ -16,7 +16,7 @@ class TriviaTestCase(unittest.TestCase):
         self.app = create_app()
         self.client = self.app.test_client
         self.database_name = "postgres"
-        self.database_path = "postgresql://{}@{}/{}".format('postgres','localhost:5432', self.database_name)
+        self.database_path = "postgresql://{}@{}/{}".format('postgres:Liszt762!','localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -58,9 +58,16 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], "Resource Not Found")
 
+    def test_get_questions_success(self):
+        category_id = 1
+        response = self.client().get('/categories/{}/questions?page=1'.format(category_id))
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
+        
+       
 
     #2  testing the number of categories set in the table.
-    def test_get_categories(self): 
+    def test_get_categories_error(self): 
         res = self.client().get('api/categories?=42')
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 404)
@@ -68,7 +75,6 @@ class TriviaTestCase(unittest.TestCase):
         #self.assertEqual(len(data['categories']))
 
 
-        
 
     #3 testing posting a new page and making sure it gets posted.
     def test_create_questions(self):
@@ -80,6 +86,17 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertEqual(data['create_id'],new_id)
+
+
+    def test_create_questions_failure(self):
+        res = self.client().post('/questions', json={})
+        data = json.loads(res.data)
+        #new_id = data['create_id']
+        question_num = Question.query.all()
+        
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['success'], False)
+       
 
     #4 testing search engine of the page and make sure it can handle non-valid search.
     def test_search_questions(self):
